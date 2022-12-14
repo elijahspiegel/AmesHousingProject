@@ -1,0 +1,171 @@
+---
+title: "ML Project - Modeling"
+output: html_document
+date: "2022-12-13"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(caret)
+library(tidyr)
+```
+
+```{r}
+housedf = read.csv("Ames_HousePrice_processed.csv")
+```
+
+```{r}
+head(housedf)
+```
+```{r}
+colnames(housedf)
+```
+```{r}
+summary(housedf)
+```
+
+```{r}
+housedf = subset(housedf, select = -c(X, PID, MA_Ownr1, MA_Ownr2, Prop_Addr, MA_Ownr1, MA_Ownr2))
+```
+```{r}
+housedf$Latitude[is.na(housedf$Latitude)] = median(housedf$Latitude, na.rm = TRUE)
+housedf$Longitude[is.na(housedf$Longitude)] = median(housedf$Longitude, na.rm = TRUE)
+```
+
+```{r}
+str(housedf)
+```
+```{r}
+
+housedf$MSSubClass = as.factor(housedf$MSSubClass)
+housedf$MSZoning = as.factor(housedf$MSZoning)
+housedf$Street = as.factor(housedf$Street)
+housedf$Alley = as.factor(housedf$Alley)
+housedf$LotShape = as.factor(housedf$LotShape)
+housedf$LandContour = as.factor(housedf$LandContour)
+housedf$Utilities = as.factor(housedf$Utilities)
+housedf$LotConfig = as.factor(housedf$LotConfig)
+housedf$LandSlope = as.factor(housedf$LandSlope)
+housedf$Neighborhood = as.factor(housedf$Neighborhood)
+housedf$Condition1 = as.factor(housedf$Condition1)
+housedf$Condition2 = as.factor(housedf$Condition2)
+housedf$BldgType = as.factor(housedf$BldgType)
+housedf$HouseStyle = as.factor(housedf$HouseStyle)
+housedf$OverallQual = as.factor(housedf$OverallQual)
+housedf$OverallCond = as.factor(housedf$OverallCond)
+housedf$RoofStyle = as.factor(housedf$RoofStyle)
+housedf$RoofMatl = as.factor(housedf$RoofMatl)
+housedf$Exterior1st = as.factor(housedf$Exterior1st)
+housedf$Exterior2nd = as.factor(housedf$Exterior2nd)
+housedf$MasVnrType = as.factor(housedf$MasVnrType)
+housedf$ExterQual = as.factor(housedf$ExterQual)
+housedf$ExterCond = as.factor(housedf$ExterCond)
+housedf$Foundation = as.factor(housedf$Foundation)
+housedf$BsmtQual = as.factor(housedf$BsmtQual)
+housedf$BsmtCond = as.factor(housedf$BsmtCond)
+housedf$BsmtExposure = as.factor(housedf$BsmtExposure)
+housedf$BsmtFinType1 = as.factor(housedf$BsmtFinType1)
+housedf$BsmtFinType2 = as.factor(housedf$BsmtFinType2)
+housedf$Heating = as.factor(housedf$Heating)
+housedf$HeatingQC = as.factor(housedf$HeatingQC)
+housedf$CentralAir = as.factor(housedf$CentralAir)
+housedf$Electrical = as.factor(housedf$Electrical)
+housedf$KitchenQual = as.factor(housedf$KitchenQual)
+housedf$Functional = as.factor(housedf$Functional)
+housedf$FireplaceQu = as.factor(housedf$GarageType)
+housedf$GarageFinish = as.factor(housedf$GarageFinish)
+housedf$GarageQual = as.factor(housedf$GarageQual)
+housedf$GarageCond = as.factor(housedf$GarageCond)
+housedf$PavedDrive = as.factor(housedf$PavedDrive)
+housedf$SaleCondition = as.factor(housedf$SaleCondition)
+housedf$PoolQC = as.factor(housedf$PoolQC)
+housedf$Fence = as.factor(housedf$Fence)
+housedf$MiscFeature = as.factor(housedf$MiscFeature)
+housedf$SaleType = as.factor(housedf$SaleType)
+
+```
+
+```{r}
+
+housedf = fastDummies::dummy_cols(housedf, remove_first_dummy = TRUE, remove_selected_columns = TRUE)
+
+```
+```{r}
+sample = sample(c(TRUE, FALSE), nrow(housedf), replace = TRUE, prob = c(0.7, 0.3))
+train = housedf[sample, ]
+test = housedf[!sample, ]
+```
+
+
+```{r}
+
+saturated_model = lm(SalePrice ~ ., data = train)
+
+```
+
+```{r}
+summary(saturated_model)
+```
+```{r}
+library(car)
+vif_values = vif(bothAIC.empty)
+vif_values
+```
+
+```{r}
+cor_coefs = cor(housedf)
+cor_df = data.frame(cor_coefs)
+```
+
+```{r}
+cor_coefs[!lower.tri(cor_coefs)] = NA
+
+cor_df %>%
+  tibble::rownames_to_column() %>%
+  gather(key = "variable", value = "correlation", -rowname) %>%
+  filter(correlation > 0.7) 
+
+```
+
+```{r}
+
+empty_model = lm(SalePrice ~ 1, data = train)
+scope = list(lower = formula(empty_model), upper = formula(saturated_model))
+
+```
+
+
+```{r}
+library(MASS)
+forwardAIC = step(empty_model, scope, direction = "forward", k = 2, steps = 100)
+```
+
+
+```{r}
+summary(forwardAIC)
+```
+```{r}
+AIC(forwardAIC)
+BIC(forwardAIC)
+```
+
+
+```{r}
+bothAIC.empty = step(empty_model, scope, direction = "both", k = 2, steps = 100)
+```
+
+
+```{r}
+summary(bothAIC.empty)
+```
+```{r}
+AIC(bothAIC.empty)
+BIC(bothAIC.empty)
+```
+
