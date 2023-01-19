@@ -16,5 +16,3 @@ We built a random forest regression model that:
 We began this project with EDA, then feature engineering, then machine learning model building including multiple linear regression and random forest decision trees.  
 This github provides the code for each of these steps.  
 The final model we chose to use is the random forest model. Tree Model Exploration.ipynb includes this model and some exploration of the model's results.
-
-### Results
